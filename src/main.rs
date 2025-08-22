@@ -1,47 +1,15 @@
+mod structures;
 use actix_files as fs;
 use actix_web::{get, web, App, HttpServer, Responder};
-use serde::Serialize;
-use serde::Deserialize;
 use dotenvy::dotenv;
 use std::env;
 
-struct AppState {
-    spotify_token: String,
-    app_name: String,
-}
+use structures::{AppState, Artist, Track, TopTracksResponse, TopArtistsResponse, GenreCount, GenreDetail, Recommendation};
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Artist {
-    id: String,
-    name: String,
-    genres: Vec<String>,
-}
-
-#[derive(Deserialize, Debug)]
-struct Track {
-    name: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct TopTracksResponse {
-    tracks: Vec<Track>,
-}
-
-#[derive(Deserialize, Debug)]
-struct TopArtistsResponse {
-    items: Vec<Artist>,
-}
-
-#[derive(Serialize)]
-struct GenreCount {
-    genre: String,
-    count: usize,
-}
-
-#[derive(Serialize)]
-struct GenreDetail {
-    artist: String,
-    tracks: Vec<String>,
+#[get("/")]
+async fn index(data: web::Data<AppState>) -> String {
+    let app_name = &data.app_name; // <- get app_name
+    format!("Hello {app_name}!") // <- response with app_name
 }
 
 #[get("/genres")]
@@ -140,11 +108,70 @@ async fn viz() -> impl Responder {
         .body(html)
 }
 
-#[get("/")]
-async fn index(data: web::Data<AppState>) -> String {
-    let app_name = &data.app_name; // <- get app_name
-    format!("Hello {app_name}!") // <- response with app_name
+use rand::seq::SliceRandom;
+
+#[get("/recommend_json")]
+async fn recommend(data: web::Data<AppState>) -> impl Responder {
+    let client = reqwest::Client::new();
+
+    let url = "https://api.spotify.com/v1/me/top/artists?limit=20";
+    let resp = client
+        .get(url)
+        .bearer_auth(&data.spotify_token)
+        .send()
+        .await
+        .unwrap()
+        .json::<TopArtistsResponse>()
+        .await
+        .unwrap();
+
+    let mut rng = rand::thread_rng();
+    let artist = match resp.items.choose(&mut rng) {
+        Some(a) => a,
+        None => return web::Json(Recommendation {
+            artist: "None".into(),
+            track: "None".into(),
+            spotify_url: "".into(),
+        }),
+    };
+
+    let track_url = format!(
+        "https://api.spotify.com/v1/artists/{}/top-tracks?market=US",
+        artist.id
+    );
+
+    let track_resp = client
+        .get(&track_url)
+        .bearer_auth(&data.spotify_token)
+        .send()
+        .await
+        .unwrap()
+        .json::<TopTracksResponse>()
+        .await
+        .unwrap();
+
+    let track = match track_resp.tracks.choose(&mut rng) {
+        Some(t) => t,
+        None => return web::Json(Recommendation {
+            artist: artist.name.clone(),
+            track: "No track found".into(),
+            spotify_url: "".into(),
+        }),
+    };
+
+    web::Json(Recommendation {
+        artist: artist.name.clone(),
+        track: track.name.clone(),
+        spotify_url: format!("https://open.spotify.com/track/{}", track.id),
+    })
 }
+
+#[get("/recommend")]
+async fn recommend_page() -> actix_web::Result<fs::NamedFile> {
+    Ok(fs::NamedFile::open("./static/recommendation.html")?)
+}
+
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -161,6 +188,8 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(genres)
             .service(genre_detail)
+            .service(recommend)
+            .service(recommend_page)
             .service(fs::Files::new("/static", "./static").show_files_listing())
             .route("/viz", web::get().to(|| async { fs::NamedFile::open("./static/index.html")}))
     })
