@@ -3,13 +3,14 @@ use actix_files as fs;
 use actix_web::{get, web, App, HttpServer, Responder};
 use dotenvy::dotenv;
 use std::env;
+use std::path::PathBuf;
 
 use structures::{AppState, Artist, Track, TopTracksResponse, TopArtistsResponse, GenreCount, GenreDetail, Recommendation};
 
 #[get("/")]
-async fn index(data: web::Data<AppState>) -> String {
-    let app_name = &data.app_name; // <- get app_name
-    format!("Hello {app_name}!") // <- response with app_name
+async fn index() -> actix_web::Result<fs::NamedFile> {
+    let path: PathBuf = "./static/index.html".parse().unwrap();
+    Ok(fs::NamedFile::open(path)?)
 }
 
 #[get("/genres")]
@@ -183,7 +184,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(AppState {
                 spotify_token: token.clone(),
-                app_name: String::from("Actix Web"),
+                app_name: String::from("Spotify Deep Dive"),
             }))
             .service(index)
             .service(genres)
@@ -191,7 +192,7 @@ async fn main() -> std::io::Result<()> {
             .service(recommend)
             .service(recommend_page)
             .service(fs::Files::new("/static", "./static").show_files_listing())
-            .route("/viz", web::get().to(|| async { fs::NamedFile::open("./static/index.html")}))
+            .route("/viz", web::get().to(|| async { fs::NamedFile::open("./static/genre_analysis.html")}))
     })
     .bind(("127.0.0.1", 8080))?
     .run()

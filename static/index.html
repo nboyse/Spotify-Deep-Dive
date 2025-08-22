@@ -1,17 +1,45 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>Spotify Top Genres</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/static/app.js"></script>
-</head>
-<body>
-    <h2>My Top Genres</h2>
-    <canvas id="chart"></canvas>
-
-    <div id="details"></div>
-
-</body>
-</html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spotify Deep Dives</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                font-family: Arial, sans-serif;
+                background-color: #1DB954;
+                color: white;
+                text-align: center;
+            }
+            h1 {
+                font-size: 3rem;
+                margin-bottom: 2rem;
+            }
+            .button {
+                background-color: white;
+                color: #1DB954;
+                padding: 1rem 2rem;
+                margin: 0.5rem;
+                border: none;
+                border-radius: 50px;
+                font-size: 1.2rem;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .button:hover {
+                background-color: #1ed760;
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Spotify Deep Dives</h1>
+        <a href="/viz" class="button">Genre analysis</a>
+        <a href="/recommend" class="button">Recommendation</a>
+    </body>
+    </html>
