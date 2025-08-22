@@ -16,3 +16,13 @@ You'll also need to generate your own spotify bearer token from [here](https://d
 
 ```bash
 cargo run
+```
+
+Genre analysis:
+![Analysis](pics/genreanalysis.png)
+
+Recommendation generator:
+![Recommendation](pics/recommendation.png)
+
+Homepage:
+![Homepage](pics/homepage.png)
